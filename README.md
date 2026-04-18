@@ -63,8 +63,6 @@ Traditional deployments bolt security on at the end, use manual infrastructure, 
 
 ## 🌐 Live Demo
 
-> **[https://your-vercel-url.vercel.app](https://your-vercel-url.vercel.app)**
-
 The full three-tier app (React + Node.js API) is deployed on Vercel — no setup needed. Tasks are stored in-memory; connect a MongoDB Atlas URL via the `MONGO_URI` environment variable for persistence.
 
 ---
