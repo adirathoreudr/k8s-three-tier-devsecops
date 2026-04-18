@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-service
+  namespace: three-tier
+  labels:
+    app: mongodb
+    tier: database
+spec:
+  # ClusterIP — database NOT exposed outside cluster
+  type: ClusterIP
+  clusterIP: None    # Headless for StatefulSet DNS
+  selector:
+    app: mongodb
+  ports:
+    - port: 27017
+      targetPort: 27017
+      protocol: TCP
+      name: mongodb

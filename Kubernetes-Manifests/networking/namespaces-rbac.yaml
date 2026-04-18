@@ -1,0 +1,68 @@
+# ── Namespaces ────────────────────────────────────────────────────
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: three-tier
+  labels:
+    name: three-tier
+    env: production
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+  labels:
+    name: argocd
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    name: monitoring
+---
+# ── ServiceAccount: backend (least privilege) ─────────────────────
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: backend-sa
+  namespace: three-tier
+  labels:
+    app: backend
+automountServiceAccountToken: false   # Don't auto-mount — not needed
+---
+# ── ServiceAccount: frontend ──────────────────────────────────────
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: frontend-sa
+  namespace: three-tier
+  labels:
+    app: frontend
+automountServiceAccountToken: false
+---
+# ── Role: read-only secrets for backend ───────────────────────────
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: secret-reader
+  namespace: three-tier
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+    resourceNames: ["mongo-secret"]   # Only THIS secret
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: backend-secret-reader
+  namespace: three-tier
+subjects:
+  - kind: ServiceAccount
+    name: backend-sa
+    namespace: three-tier
+roleRef:
+  kind: Role
+  name: secret-reader
+  apiGroup: rbac.authorization.k8s.io

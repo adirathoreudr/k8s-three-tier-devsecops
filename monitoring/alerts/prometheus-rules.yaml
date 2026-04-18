@@ -1,0 +1,129 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: three-tier-alerts
+  namespace: monitoring
+  labels:
+    app: kube-prometheus-stack
+    release: kube-prometheus-stack
+spec:
+  groups:
+
+    # ── Pod Health ─────────────────────────────────────────────────
+    - name: pod-health
+      interval: 30s
+      rules:
+        - alert: PodCrashLooping
+          expr: |
+            rate(kube_pod_container_status_restarts_total{
+              namespace="three-tier"
+            }[5m]) * 60 > 0
+          for: 2m
+          labels:
+            severity: critical
+            namespace: three-tier
+          annotations:
+            summary: "Pod {{ $labels.pod }} is crash-looping"
+            description: "Container {{ $labels.container }} in namespace {{ $labels.namespace }} has restarted {{ $value | humanize }} times/min"
+
+        - alert: PodNotReady
+          expr: |
+            kube_pod_status_ready{
+              namespace="three-tier",
+              condition="false"
+            } == 1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Pod {{ $labels.pod }} not ready"
+            description: "Pod has been unready for >5 minutes"
+
+        - alert: DeploymentReplicasMismatch
+          expr: |
+            kube_deployment_spec_replicas{namespace="three-tier"} !=
+            kube_deployment_status_replicas_available{namespace="three-tier"}
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Deployment {{ $labels.deployment }} has unavailable replicas"
+
+    # ── Node Health ────────────────────────────────────────────────
+    - name: node-health
+      rules:
+        - alert: NodeHighCPU
+          expr: |
+            100 - (avg by(instance)(
+              rate(node_cpu_seconds_total{mode="idle"}[5m])
+            ) * 100) > 85
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Node CPU > 85% on {{ $labels.instance }}"
+            description: "CPU usage is {{ $value | humanize }}%"
+
+        - alert: NodeHighMemory
+          expr: |
+            (1 - (node_memory_MemAvailable_bytes /
+                  node_memory_MemTotal_bytes)) * 100 > 85
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Node memory > 85% on {{ $labels.instance }}"
+
+        - alert: NodeDiskPressure
+          expr: |
+            (node_filesystem_avail_bytes{mountpoint="/"} /
+             node_filesystem_size_bytes{mountpoint="/"}) * 100 < 15
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Disk < 15% free on {{ $labels.instance }}"
+
+    # ── Application Health ─────────────────────────────────────────
+    - name: app-health
+      rules:
+        - alert: BackendHighErrorRate
+          expr: |
+            rate(http_requests_total{
+              job="backend",
+              status=~"5.."
+            }[5m]) /
+            rate(http_requests_total{job="backend"}[5m]) > 0.05
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Backend error rate > 5%"
+            description: "Error rate is {{ $value | humanizePercentage }}"
+
+        - alert: BackendHighLatency
+          expr: |
+            histogram_quantile(0.99,
+              rate(http_request_duration_seconds_bucket{
+                job="backend"
+              }[5m])
+            ) > 2
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Backend p99 latency > 2s"
+
+        - alert: MongoDBDown
+          expr: |
+            kube_pod_status_ready{
+              namespace="three-tier",
+              pod=~"mongodb.*",
+              condition="true"
+            } == 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "MongoDB pod is down"
+            description: "Database tier is unavailable — backend will fail"

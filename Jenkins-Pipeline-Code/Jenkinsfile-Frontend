@@ -1,0 +1,142 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION    = 'us-east-1'
+        ECR_REGISTRY  = credentials('ecr-registry')
+        DOCKER_IMAGE  = "${ECR_REGISTRY}/three-tier-frontend"
+        SONAR_PROJECT = 'three-tier-frontend'
+        GIT_REPO      = 'https://github.com/YOUR-ORG/k8s-three-tier-devsecops.git'
+        IMAGE_TAG     = "${env.BUILD_NUMBER}-${env.GIT_COMMIT?.take(7) ?: 'local'}"
+    }
+
+    options {
+        timeout(time: 30, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        disableConcurrentBuilds()
+    }
+
+    stages {
+
+        stage('1. Checkout') {
+            steps {
+                git branch: 'main', url: env.GIT_REPO,
+                    credentialsId: 'github-token'
+            }
+        }
+
+        stage('2. SonarQube Analysis') {
+            steps {
+                dir('Application-Code/frontend') {
+                    withSonarQubeEnv('sonarqube') {
+                        sh """
+                            sonar-scanner \
+                              -Dsonar.projectKey=${SONAR_PROJECT} \
+                              -Dsonar.projectName='Three-Tier Frontend' \
+                              -Dsonar.sources=src \
+                              -Dsonar.exclusions=node_modules/**,build/**
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('3. Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        stage('4. OWASP Dependency Check') {
+            steps {
+                dir('Application-Code/frontend') {
+                    dependencyCheck(
+                        additionalArguments: '--scan ./ --format HTML --failOnCVSS 7',
+                        odcInstallation: 'OWASP-Dep-Check'
+                    )
+                }
+            }
+        }
+
+        stage('5. Build React App') {
+            steps {
+                dir('Application-Code/frontend') {
+                    sh 'npm ci'
+                    sh 'REACT_APP_API_URL=/api npm run build'
+                }
+            }
+        }
+
+        stage('6. Docker Build') {
+            steps {
+                dir('Application-Code/frontend') {
+                    sh "docker build -t ${DOCKER_IMAGE}:${IMAGE_TAG} ."
+                    sh "docker tag ${DOCKER_IMAGE}:${IMAGE_TAG} ${DOCKER_IMAGE}:latest"
+                }
+            }
+        }
+
+        stage('7. Trivy Security Scan') {
+            steps {
+                sh """
+                    trivy image \
+                      --severity CRITICAL,HIGH \
+                      --exit-code 1 \
+                      --no-progress \
+                      --format template \
+                      --template '@/usr/local/share/trivy/templates/html.tpl' \
+                      -o trivy-frontend-report.html \
+                      ${DOCKER_IMAGE}:${IMAGE_TAG}
+                """
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'trivy-frontend-report.html',
+                                     allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('8. Push to ECR') {
+            steps {
+                withAWS(credentials: 'aws-credentials', region: env.AWS_REGION) {
+                    sh """
+                        aws ecr get-login-password --region ${AWS_REGION} | \
+                            docker login --username AWS --password-stdin ${ECR_REGISTRY}
+                        docker push ${DOCKER_IMAGE}:${IMAGE_TAG}
+                        docker push ${DOCKER_IMAGE}:latest
+                    """
+                }
+            }
+        }
+
+        stage('9. Update Helm Values') {
+            steps {
+                withCredentials([string(credentialsId: 'github-token', variable: 'GH_TOKEN')]) {
+                    sh """
+                        git config user.email "jenkins@ci.pipeline"
+                        git config user.name  "Jenkins CI"
+                        sed -i '/frontend:/,/tag:/{s|tag:.*|tag: "${IMAGE_TAG}"|}' helm/values.yaml
+                        git add helm/values.yaml
+                        git commit -m "ci(frontend): deploy image ${IMAGE_TAG} [skip ci]"
+                        git push https://\${GH_TOKEN}@github.com/YOUR-ORG/k8s-three-tier-devsecops.git main
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            sh "docker rmi ${DOCKER_IMAGE}:${IMAGE_TAG} || true"
+            cleanWs()
+        }
+        failure {
+            mail to: 'team@yourcompany.com',
+                 subject: "❌ Frontend Pipeline FAILED: ${env.BUILD_NUMBER}",
+                 body: "Failed: ${env.BUILD_URL}"
+        }
+    }
+}

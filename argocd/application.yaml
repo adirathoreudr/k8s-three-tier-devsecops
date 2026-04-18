@@ -1,0 +1,46 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: three-tier-app
+  namespace: argocd
+  # Auto-delete child resources when app deleted
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/YOUR-ORG/k8s-three-tier-devsecops.git
+    targetRevision: main
+    path: Kubernetes-Manifests
+    # Exclude networking (applied once manually)
+    directory:
+      exclude: "networking/namespaces-rbac.yaml"
+      recurse: true
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: three-tier
+
+  syncPolicy:
+    automated:
+      prune: true        # Remove resources deleted from Git
+      selfHeal: true     # Fix manual kubectl changes
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 2m
+
+  # Health checks — ArgoCD watches these
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas   # HPA manages replicas
