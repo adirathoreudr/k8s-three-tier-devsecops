@@ -89,12 +89,6 @@ export default function App() {
         <div className="nav-brand">
           ☸ DevSecOps<span>.</span>
         </div>
-        <div className="nav-links">
-          <a href="#">Tasks</a>
-          <a href="#">Metrics</a>
-          <a href="#">Security</a>
-          <a href="#">About</a>
-        </div>
         <button className="nav-cta">View Cluster</button>
       </nav>
 
