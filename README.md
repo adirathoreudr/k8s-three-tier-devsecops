@@ -16,10 +16,6 @@
 ![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB)
 ![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat&logo=nodedotjs&logoColor=white)
 ![UI](https://img.shields.io/badge/UI-Minimalist_Glassmorphism-FF4154?style=flat)
-![Jenkins](https://img.shields.io/badge/Jenkins-D24939?style=flat&logo=jenkins&logoColor=white)
-![ArgoCD](https://img.shields.io/badge/ArgoCD-EF7B4D?style=flat&logo=argo&logoColor=white)
-![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB)
-![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat&logo=nodedotjs&logoColor=white)
 
 </div>
 
@@ -62,6 +58,28 @@ Traditional deployments bolt security on at the end, use manual infrastructure, 
 - **No observability** when things break in production
 
 **This project solves all four** — security gates in every pipeline stage, 100% infrastructure-as-code, automated GitOps delivery, and real-time Prometheus/Grafana monitoring.
+
+---
+
+## ⚡ TL;DR — Simple Local Setup
+
+Want to run the full stack locally without deploying to the cloud? The project includes a fully configured Docker Compose environment.
+
+### 1. Prerequisites
+- Install [Docker](https://www.docker.com/) and Docker Compose.
+
+### 2. Run the Stack
+From the root of the project, start the application:
+```bash
+docker-compose up --build -d
+```
+
+### 3. Access the Services
+- **Frontend UI**: `http://localhost:3000`
+- **Backend API**: `http://localhost:3500`
+- **MongoDB**: `localhost:27017`
+
+*Note: The frontend will automatically route API calls to the backend container, and the backend is pre-configured to use the local MongoDB database. No manual configuration needed!*
 
 ---
 
