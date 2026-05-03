@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
-// Empty string = relative URL = works on Vercel (/api/...) and with CRA proxy locally
 const API = process.env.REACT_APP_API_URL || '';
 
 export default function App() {
@@ -13,7 +12,6 @@ export default function App() {
   const [editId, setEditId]     = useState(null);
   const [health, setHealth]     = useState(null);
 
-  // ── Fetch tasks ──────────────────────────────────────────────────
   const fetchTasks = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -32,7 +30,6 @@ export default function App() {
     }
   }, [filter]);
 
-  // ── Fetch health ─────────────────────────────────────────────────
   const fetchHealth = async () => {
     try {
       const res  = await fetch(`${API}/health`);
@@ -45,7 +42,6 @@ export default function App() {
 
   useEffect(() => { fetchTasks(); fetchHealth(); }, [fetchTasks]);
 
-  // ── Create / Update ──────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.title.trim()) return;
@@ -70,7 +66,6 @@ export default function App() {
     }
   };
 
-  // ── Delete ───────────────────────────────────────────────────────
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this task?')) return;
     try {
@@ -83,141 +78,152 @@ export default function App() {
     }
   };
 
-  // ── Edit ─────────────────────────────────────────────────────────
   const handleEdit = (task) => {
     setEditId(task._id);
     setForm({ title: task.title, status: task.status, priority: task.priority });
   };
 
   return (
-    <div className="app-container">
-      {/* Header */}
-      <header className="app-header">
-        <div>
-          <h1 className="app-title">☸ <span>DevSecOps Task Manager</span></h1>
-          <p className="app-subtitle">Three-Tier Kubernetes Application</p>
+    <>
+      <nav className="navbar">
+        <div className="nav-brand">
+          ☸ DevSecOps<span>.</span>
         </div>
-        {health && (
-          <div className={`health-badge ${health.status === 'healthy' ? 'healthy' : 'unhealthy'}`}>
-            API: {health.status}
+        <div className="nav-links">
+          <a href="#">Tasks</a>
+          <a href="#">Metrics</a>
+          <a href="#">Security</a>
+          <a href="#">About</a>
+        </div>
+        <button className="nav-cta">View Cluster</button>
+      </nav>
+
+      <div className="app-container">
+        {/* Hero */}
+        <header className="hero-section">
+          <h1 className="app-title">
+            Your Infrastructure's Next 10<br />
+            Years of Productivity<span className="dot">.</span>
+          </h1>
+          <p className="app-subtitle">
+            Manual tasks create mistakes operators shouldn't have to fix. 
+            We fix it with a live DevSecOps platform built for how you work.
+          </p>
+          
+          {health && (
+            <div className={`health-badge ${health.status === 'healthy' ? 'healthy' : 'unhealthy'}`}>
+              API Status: {health.status}
+            </div>
+          )}
+        </header>
+
+        {error && (
+          <div className="error-alert">
+            <div>⚠️ {error}</div>
+            <button className="error-close" onClick={() => setError(null)}>✕</button>
           </div>
         )}
-      </header>
 
-      {error && (
-        <div className="error-alert">
-          <div>⚠️ {error}</div>
-          <button className="error-close" onClick={() => setError(null)}>✕</button>
+        {/* Form */}
+        <div className="form-card">
+          <h2 className="form-title">
+            {editId ? '✏️ Edit Process' : 'Add new process'}
+          </h2>
+          <form onSubmit={handleSubmit} className="task-form">
+            <input
+              className="input-field"
+              value={form.title}
+              onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+              placeholder="What needs to be automated?"
+              required
+            />
+            <select 
+              className="select-field"
+              value={form.status} 
+              onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
+            >
+              <option value="pending">Pending</option>
+              <option value="in-progress">In Progress</option>
+              <option value="done">Done</option>
+            </select>
+            <select 
+              className="select-field"
+              value={form.priority} 
+              onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}
+            >
+              <option value="low">Low Priority</option>
+              <option value="medium">Medium Priority</option>
+              <option value="high">High Priority</option>
+            </select>
+            <button type="submit" disabled={submitting} className="btn btn-primary">
+              {submitting ? 'Working...' : editId ? 'Update Process' : 'Start Build'}
+            </button>
+            {editId && (
+              <button type="button" className="btn btn-secondary" onClick={() => { setEditId(null); setForm({ title: '', status: 'pending', priority: 'medium' }); }}>
+                Cancel
+              </button>
+            )}
+          </form>
         </div>
-      )}
 
-      {/* Form */}
-      <div className="form-card">
-        <h2 className="form-title">
-          {editId ? '✏️ Edit Task' : '✨ New Task'}
-        </h2>
-        <form onSubmit={handleSubmit} className="task-form">
-          <input
-            className="input-field"
-            value={form.title}
-            onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-            placeholder="What needs to be done?"
-            required
-          />
+        {/* Filters */}
+        <div className="filters-container">
           <select 
-            className="select-field"
-            value={form.status} 
-            onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
+            className="filter-select"
+            value={filter.status} 
+            onChange={e => setFilter(f => ({ ...f, status: e.target.value }))}
           >
+            <option value="">All Statuses</option>
             <option value="pending">Pending</option>
             <option value="in-progress">In Progress</option>
             <option value="done">Done</option>
           </select>
           <select 
-            className="select-field"
-            value={form.priority} 
-            onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}
+            className="filter-select"
+            value={filter.priority} 
+            onChange={e => setFilter(f => ({ ...f, priority: e.target.value }))}
           >
-            <option value="low">Low Priority</option>
-            <option value="medium">Medium Priority</option>
-            <option value="high">High Priority</option>
+            <option value="">All Priorities</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
           </select>
-          <button type="submit" disabled={submitting} className="btn btn-primary">
-            {submitting ? 'Processing...' : editId ? 'Update Task' : 'Add Task'}
-          </button>
-          {editId && (
-            <button type="button" className="btn btn-secondary" onClick={() => { setEditId(null); setForm({ title: '', status: 'pending', priority: 'medium' }); }}>
-              Cancel
-            </button>
-          )}
-        </form>
-      </div>
+          <span className="task-count">{tasks.length} active process{tasks.length !== 1 ? 'es' : ''}</span>
+        </div>
 
-      {/* Filters */}
-      <div className="filters-container">
-        <select 
-          className="filter-select"
-          value={filter.status} 
-          onChange={e => setFilter(f => ({ ...f, status: e.target.value }))}
-        >
-          <option value="">All Statuses</option>
-          <option value="pending">Pending</option>
-          <option value="in-progress">In Progress</option>
-          <option value="done">Done</option>
-        </select>
-        <select 
-          className="filter-select"
-          value={filter.priority} 
-          onChange={e => setFilter(f => ({ ...f, priority: e.target.value }))}
-        >
-          <option value="">All Priorities</option>
-          <option value="low">Low</option>
-          <option value="medium">Medium</option>
-          <option value="high">High</option>
-        </select>
-        <span className="task-count">{tasks.length} task{tasks.length !== 1 ? 's' : ''}</span>
-      </div>
-
-      {/* Task list */}
-      {loading ? (
-        <div className="state-message">Loading tasks...</div>
-      ) : tasks.length === 0 ? (
-        <div className="state-message">No tasks found. Create one above!</div>
-      ) : (
-        <div className="task-list">
-          {tasks.map(task => (
-            <div key={task._id} className="task-item">
-              <div className="task-content">
-                <div className="task-title">{task.title}</div>
-                <div className="task-badges">
-                  <span className="badge" style={{
-                    background: task.status === 'done' ? 'rgba(16, 185, 129, 0.15)' : task.status === 'in-progress' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                    color: task.status === 'done' ? '#10b981' : task.status === 'in-progress' ? '#38bdf8' : '#f59e0b',
-                    border: `1px solid ${task.status === 'done' ? 'rgba(16, 185, 129, 0.3)' : task.status === 'in-progress' ? 'rgba(56, 189, 248, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`
-                  }}>
-                    {task.status}
-                  </span>
-                  <span className="badge" style={{
-                    background: task.priority === 'high' ? 'rgba(239, 68, 68, 0.15)' : task.priority === 'medium' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(148, 163, 184, 0.15)',
-                    color: task.priority === 'high' ? '#ef4444' : task.priority === 'medium' ? '#f59e0b' : '#94a3b8',
-                    border: `1px solid ${task.priority === 'high' ? 'rgba(239, 68, 68, 0.3)' : task.priority === 'medium' ? 'rgba(245, 158, 11, 0.3)' : 'rgba(148, 163, 184, 0.3)'}`
-                  }}>
-                    {task.priority}
-                  </span>
+        {/* Task list */}
+        {loading ? (
+          <div className="state-message">Configuring control center...</div>
+        ) : tasks.length === 0 ? (
+          <div className="state-message">No active processes. Configure a new task above.</div>
+        ) : (
+          <div className="task-list">
+            {tasks.map(task => (
+              <div key={task._id} className="task-item">
+                <div className="task-content">
+                  <div className="task-title">{task.title}</div>
+                  <div className="task-badges">
+                    <span className={`badge status-${task.status}`}>
+                      {task.status}
+                    </span>
+                    <span className={`badge priority-${task.priority}`}>
+                      {task.priority}
+                    </span>
+                  </div>
+                </div>
+                <div className="task-actions">
+                  <button className="btn-icon btn-edit" onClick={() => handleEdit(task)}>
+                    Edit
+                  </button>
+                  <button className="btn-icon btn-delete" onClick={() => handleDelete(task._id)}>
+                    Delete
+                  </button>
                 </div>
               </div>
-              <div className="task-actions">
-                <button className="btn-icon btn-edit" onClick={() => handleEdit(task)}>
-                  Edit
-                </button>
-                <button className="btn-icon btn-delete" onClick={() => handleDelete(task._id)}>
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
