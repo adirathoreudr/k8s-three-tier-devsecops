@@ -68,6 +68,12 @@ const TaskStore = {
     return true;
   },
 
+  clearDone: () => {
+    const initialCount = tasks.length;
+    tasks = tasks.filter(t => t.status !== 'done');
+    return initialCount - tasks.length;
+  },
+
   // Reset for testing
   _reset: () => {
     tasks = [

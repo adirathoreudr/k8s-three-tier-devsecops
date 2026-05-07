@@ -456,6 +456,21 @@ npx jest tests/ --forceExit --verbose
 
 ---
 
+## 🛣️ API Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/health` | Service health status |
+| `GET` | `/api/tasks` | List all tasks (supports `?status=` and `?priority=`) |
+| `POST` | `/api/tasks` | Create a new task |
+| `PUT` | `/api/tasks/:id` | Update a task (e.g., mark as done) |
+| `DELETE` | `/api/tasks/:id` | Delete a task |
+| `DELETE` | `/api/tasks/completed` | Clear all tasks with status 'done' [NEW] |
+
+---
+
+---
+
 ## 🔒 Security Controls
 
 | Layer | Control | Enforcement |

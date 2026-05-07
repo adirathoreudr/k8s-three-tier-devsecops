@@ -83,6 +83,33 @@ export default function App() {
     setForm({ title: task.title, status: task.status, priority: task.priority });
   };
 
+  const handleComplete = async (id) => {
+    try {
+      const res = await fetch(`${API}/api/tasks/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'done' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      fetchTasks();
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+  const handleClearCompleted = async () => {
+    if (!window.confirm('Clear all completed tasks?')) return;
+    try {
+      const res = await fetch(`${API}/api/tasks/completed`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      fetchTasks();
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
   return (
     <>
       <nav className="navbar">
@@ -183,6 +210,11 @@ export default function App() {
             <option value="high">High</option>
           </select>
           <span className="task-count">{tasks.length} active process{tasks.length !== 1 ? 'es' : ''}</span>
+          {tasks.some(t => t.status === 'done') && (
+            <button className="btn btn-clear" onClick={handleClearCompleted}>
+              Clear Completed
+            </button>
+          )}
         </div>
 
         {/* Task list */}
@@ -209,6 +241,11 @@ export default function App() {
                   <button className="btn-icon btn-edit" onClick={() => handleEdit(task)}>
                     Edit
                   </button>
+                  {task.status !== 'done' && (
+                    <button className="btn-icon btn-complete" onClick={() => handleComplete(task._id)}>
+                      Complete
+                    </button>
+                  )}
                   <button className="btn-icon btn-delete" onClick={() => handleDelete(task._id)}>
                     Delete
                   </button>

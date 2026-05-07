@@ -55,6 +55,20 @@ router.put('/:id', (req, res) => {
   }
 });
 
+// DELETE /api/tasks/completed — clear all done tasks
+router.delete('/completed', (req, res) => {
+  try {
+    const clearedCount = TaskStore.clearDone();
+    res.status(200).json({ 
+      success: true, 
+      message: `Cleared ${clearedCount} completed tasks`,
+      clearedCount 
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // DELETE /api/tasks/:id — delete task
 router.delete('/:id', (req, res) => {
   try {
@@ -67,5 +81,6 @@ router.delete('/:id', (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
 
 module.exports = router;

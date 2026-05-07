@@ -240,6 +240,27 @@ describe('DELETE /api/tasks/:id', () => {
     const after = (await request(app).get('/api/tasks')).body.count;
     expect(after).toBe(before - 1);
   });
+
+  test('clears all completed tasks', async () => {
+    // Mark one task as done
+    await request(app).put('/api/tasks/1').send({ status: 'done' });
+    // Mark another task as done
+    await request(app).put('/api/tasks/2').send({ status: 'done' });
+    
+    const before = (await request(app).get('/api/tasks')).body.count;
+    const res = await request(app).delete('/api/tasks/completed');
+    
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.clearedCount).toBe(2);
+    
+    const after = (await request(app).get('/api/tasks')).body.count;
+    expect(after).toBe(before - 2);
+    
+    // Check that remaining task is not done
+    const remaining = (await request(app).get('/api/tasks')).body.data;
+    expect(remaining.every(t => t.status !== 'done')).toBe(true);
+  });
 });
 
 // ══════════════════════════════════════════════════════════════════
