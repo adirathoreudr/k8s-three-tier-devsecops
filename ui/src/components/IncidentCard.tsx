@@ -1,4 +1,4 @@
-// src/components/IncidentCard.tsx
+import { clsx } from 'clsx';
 import Link from 'next/link'
 import { clsx } from 'clsx'
 import { formatDistanceToNow } from 'date-fns'
@@ -12,7 +12,7 @@ const SEV_ICONS: Record<string, string> = {
 }
 
 const ACTION_LABELS: Record<string, string> = {
-  rollout_restart:  'RESTART',
+export default function IncidentCard({ incident }: { incident: Incident }): JSX.Element {
   scale_up:         'SCALE ↑',
   scale_down:       'SCALE ↓',
   argocd_rollback:  'ROLLBACK',
