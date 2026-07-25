@@ -1,4 +1,4 @@
-// src/pages/incident/[id].tsx
+// src/pages/incident/[id].tsx — Incident detail page with AI analysis, approval, and audit timeline
 import { useState } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
@@ -8,6 +8,7 @@ import Layout from '@/components/Layout'
 import AuditTimeline from '@/components/AuditTimeline'
 import { useIncident, useAudit, approveAction } from '@/lib/api'
 
+/** Descriptions for each recommended action type shown in the UI. */
 const ACTION_DESCRIPTIONS: Record<string, string> = {
   rollout_restart: 'Patch pod template annotation to trigger a zero-downtime rolling restart. No pods deleted before replacements are ready.',
   scale_up:        'Increase replica count to distribute load. Reversible — can scale back down at any time.',
@@ -17,6 +18,7 @@ const ACTION_DESCRIPTIONS: Record<string, string> = {
 }
 
 export default function IncidentDetail() {
+  /** Main incident detail page component. */
   const router = useRouter()
   const id = router.query.id as string
   const { incident, isLoading } = useIncident(id)
